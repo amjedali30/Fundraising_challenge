@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "717633225170",
+    "project_id": "dates-challenge",
+    "storage_bucket": "dates-challenge.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:717633225170:android:951c2c386b3aeb05ad880b",
+        "android_client_info": {
+          "package_name": "com.kunuppuram.dates_challenge"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCY2AueOySEix4zh8mO6YJ7wypzgCfda8I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
