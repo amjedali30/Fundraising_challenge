@@ -60,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Stack(
           children: [
             // Background image
+
             Positioned(
               child: Container(
                 height: MediaQuery.of(context).size.height,
@@ -81,6 +82,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 fit: BoxFit.contain,
               ),
             ),
+            Positioned(
+                top: MediaQuery.of(context).size.height * 0.05,
+                left: 20,
+                child: IconButton(
+                    color: Colors.white,
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    iconSize: 30,
+                    icon: Icon(Icons.arrow_back))),
             Positioned(
               top: MediaQuery.of(context).size.height * 0.35,
               left: 0,
@@ -178,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => SignUpScreen()),

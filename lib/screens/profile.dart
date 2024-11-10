@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:date_palm_challenge/screens/contribution_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,7 +28,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
@@ -55,7 +55,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     title: Text('! Log out '),
-                    // content: Text('Log out of Angadi'),
                     actions: <Widget>[
                       OutlinedButton(
                         child: Text('Cancel'),
@@ -67,6 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Text('Log Out'),
                         onPressed: () {
                           logout();
+                          Navigator.pop(context);
                         },
                       )
                     ],
@@ -78,52 +78,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: SingleChildScrollView(
         child: Container(
-          height: MediaQuery.of(context).size.height,
+          padding: EdgeInsets.only(bottom: 20), // Add padding for bottom space
           width: double.infinity,
           color: Color.fromARGB(255, 255, 255, 255),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // Profile Section
               Container(
-                  height: 290,
-                  child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Center(
-                          child: CircleAvatar(
-                            radius: 60,
-                            backgroundColor: Color.fromARGB(255, 241, 230, 230),
-                            backgroundImage: AssetImage("assets/face1.png"),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        Container(
-                          height: .4,
-                          width: double.infinity,
-                          color: Colors.grey,
-                        ),
-                        ProfileNameTag(
-                          icon: FontAwesomeIcons.user,
-                          label: "Name",
-                          name: widget.username,
-                        ),
-                        Container(
-                          height: .4,
-                          width: double.infinity,
-                          color: Colors.grey,
-                        ),
-                        ProfileNameTag(
-                          icon: Icons.call,
-                          label: "Phone Number",
-                          name: widget.mobileNo,
-                        ),
-                        // Container(
-                        //   height: .4,
-                        //   width: double.infinity,
-                        //   color: Colors.grey,
-                        // ),
-                      ])),
+                padding: EdgeInsets.all(10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Center(
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Color.fromARGB(255, 241, 230, 230),
+                        backgroundImage: AssetImage("assets/face1.png"),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Container(
+                      height: .4,
+                      width: double.infinity,
+                      color: Colors.grey,
+                    ),
+                    ProfileNameTag(
+                      icon: FontAwesomeIcons.user,
+                      label: "Name",
+                      name: widget.username,
+                    ),
+                    Container(
+                      height: .4,
+                      width: double.infinity,
+                      color: Colors.grey,
+                    ),
+                    ProfileNameTag(
+                      icon: Icons.call,
+                      label: "Phone Number",
+                      name: widget.mobileNo,
+                    ),
+                  ],
+                ),
+              ),
+              // Transaction Section
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10),
                 child: Text(
@@ -141,8 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('contributions')
-                      .where('phoneNumber',
-                          isEqualTo: widget.mobileNo) // Filter by mobile number
+                      .where('phoneNumber', isEqualTo: widget.mobileNo)
                       .orderBy('count', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
@@ -154,17 +152,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           height: 150,
                           child: Center(child: Text('No contributions yet.')));
                     }
-                    return Column(
+                    return ListView(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
                       children: snapshot.data!.docs.map((doc) {
                         return InkWell(
                             onTap: () {
-                              // Navigate to TransactionDetailScreen
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => TransactionDetailScreen(
-                                    transaction:
-                                        doc.data() as Map<String, dynamic>,
+                                    // transaction:
+                                    // doc.data() as Map<String, dynamic>,
                                     docId: doc.id,
                                   ),
                                 ),
@@ -185,11 +184,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   logout() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
-    preferences.getKeys();
-    for (String key in preferences.getKeys()) {
-      preferences.remove(key);
-    }
-    setState(() {});
-    Navigator.pop(context);
+    await preferences.clear();
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => ContributionScreen(),
+      ),
+      (Route<dynamic> route) => false,
+    );
   }
 }

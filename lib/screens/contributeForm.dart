@@ -5,6 +5,7 @@ import '../constent/app_colors.dart';
 import '../constent/app_responsive_size.dart';
 import '../constent/app_size.dart';
 import '../models/contribution_model.dart';
+import 'paymentDone.dart';
 
 class ContributeForm extends StatefulWidget {
   ContributeForm({super.key, required this.username, required this.mobile});
@@ -264,13 +265,19 @@ class _ContributeFormState extends State<ContributeForm> {
           .addContribution(
               widget.username, contributorName, amount, mobile, address)
           .then((_) {
-        _controller.clear();
-        _addressController.clear();
         if (!isSelf) _otherNameController.clear();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Contribution added successfully.')),
         );
-        Navigator.pop(context);
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => PaymentSuccessScreen(
+                      count: amount,
+                    )));
+
+        _controller.clear();
+        _addressController.clear();
       }).catchError((error) {
         setState(() {
           isSelect = false;

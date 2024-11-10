@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:date_palm_challenge/servise/notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -120,9 +123,14 @@ class _ContributionScreenState extends State<ContributionScreen> {
                     MaterialPageRoute(builder: (context) => LoginScreen()));
               }
             },
-            child: CircleAvatar(
-              child: Icon(Icons.face),
-            ),
+            child: username != null
+                ? CircleAvatar(
+                    child: Icon(Icons.face),
+                  )
+                : Text(
+                    "Login",
+                    style: TextStyle(fontSize: AppSizes.fontMedium),
+                  ),
           ),
           SizedBox(width: 10)
         ],
@@ -150,9 +158,9 @@ class _ContributionScreenState extends State<ContributionScreen> {
                 decoration:
                     BoxDecoration(borderRadius: BorderRadius.circular(15)),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(8),
                   child: Image.asset(
-                    "assets/bnr1.png",
+                    "assets/bannerImage.jpeg",
                     fit: BoxFit.fill,
                   ),
                 ),
@@ -332,7 +340,8 @@ class _ContributionScreenState extends State<ContributionScreen> {
                                       children: [
                                         InkWell(
                                           onTap: () {
-                                            _downloadQRCode(context);
+                                            _downloadQRCode(
+                                                context, data["qr_image"]);
                                           },
                                           child: Icon(
                                             Icons.download,
@@ -357,9 +366,15 @@ class _ContributionScreenState extends State<ContributionScreen> {
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Column(
                                   children: [
-                                    Container(
-                                        child: Image.memory(
-                                            base64Decode(data["qr_image"]))),
+                                    GestureDetector(
+                                      onTap: () {
+                                        _downloadQRCode(
+                                            context, data["qr_image"]);
+                                      },
+                                      child: Container(
+                                          child: Image.memory(
+                                              base64Decode(data["qr_image"]))),
+                                    ),
                                     SizedBox(
                                         height:
                                             10), // Space between image and UPID
@@ -521,6 +536,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
                     return Center(child: Text('No contributions yet.'));
                   }
                   return ListView(
+                    physics: const NeverScrollableScrollPhysics(),
                     shrinkWrap: true,
                     children: snapshot.data!.docs.map((doc) {
                       return RefactoredContainer(doc: doc);
@@ -544,7 +560,15 @@ class _ContributionScreenState extends State<ContributionScreen> {
           content: Text(content),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: Text('Login'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => LoginScreen()));
+              },
+            ),
+            TextButton(
+              child: Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
               },
@@ -558,13 +582,59 @@ class _ContributionScreenState extends State<ContributionScreen> {
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
 
-  Future<void> _downloadQRCode(BuildContext context) async {
-    print("====================");
+  // Future<void> _downloadQRCode(BuildContext context) async {
+  //   print("====================");
+  //   setState(() {
+  //     _isDownloading = true;
+  //   });
+
+  //   if (_isDownloading) print(_isDownloading);
+
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Padding(
+  //         padding: const EdgeInsets.only(top: 8.0),
+  //         child: Row(
+  //           children: [
+  //             Text("Downloading...."),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+
+  //   try {
+  //     // Get the app's document directory
+  //     final appDocDir = await getApplicationDocumentsDirectory();
+  //     final filePath =
+  //         '${appDocDir.path}/qr_code.png'; // File path to save the asset image
+
+  //     // Read the asset file
+  //     final byteData = await rootBundle
+  //         .load('assets/qr_code.png'); // Adjust the path as necessary
+  //     final buffer = byteData.buffer.asUint8List();
+
+  //     // Write the asset file to the document directory
+  //     final file = File(filePath);
+  //     await file.writeAsBytes(buffer);
+
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('QR Code downloaded successfully')),
+  //     );
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Failed to download QR Code')),
+  //     );
+  //   } finally {
+  //     setState(() {
+  //       _isDownloading = false;
+  //     });
+  //   }
+  // }
+  Future<void> _downloadQRCode(BuildContext context, String base64Image) async {
     setState(() {
       _isDownloading = true;
     });
-
-    if (_isDownloading) print(_isDownloading);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -579,32 +649,126 @@ class _ContributionScreenState extends State<ContributionScreen> {
       ),
     );
 
+    // try {
+    //   // Decode the base64 image
+    //   final decodedBytes = base64Decode(base64Image);
+
+    //   // Get the app's document directory
+    //   final appDocDir = await getApplicationDocumentsDirectory();
+    //   final filePath = '${appDocDir.path}/qr_code.png';
+
+    //   // Write the decoded image bytes to a file
+    //   final file = File(filePath);
+    //   await file.writeAsBytes(decodedBytes);
+
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('QR Code downloaded successfully at $filePath')),
+    //   );
+    // } catch (e) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Failed to download QR Code: $e')),
+    //   );
+    // } finally {
+    //   setState(() {
+    //     _isDownloading = false;
+    //   });
+    // }
     try {
-      // Get the app's document directory
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final filePath =
-          '${appDocDir.path}/qr_code.png'; // File path to save the asset image
+      // Request storage permission
+      if (await _requestStoragePermission()) {
+        // Request notification permission
+        // await _requestNotificationPermission();
 
-      // Read the asset file
-      final byteData = await rootBundle
-          .load('assets/qr_code.png'); // Adjust the path as necessary
-      final buffer = byteData.buffer.asUint8List();
+        // Decode the base64 image
+        final decodedBytes = base64Decode(base64Image);
 
-      // Write the asset file to the document directory
-      final file = File(filePath);
-      await file.writeAsBytes(buffer);
+        // Get the Downloads directory
+        final directory = Directory('/storage/emulated/0/Download');
+        String fileName =
+            'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
+        final filePath = '${directory.path}/$fileName';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('QR Code downloaded successfully')),
-      );
+        // Write the image bytes to the file
+        final file = File(filePath);
+        await file.writeAsBytes(decodedBytes);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('QR Code downloaded successfully at $filePath')),
+        );
+
+        // Show download notification
+        await _showDownloadNotification();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Storage permission denied')),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to download QR Code')),
+        SnackBar(content: Text('Failed to download QR Code: $e')),
       );
     } finally {
       setState(() {
         _isDownloading = false;
       });
     }
+  }
+
+  Future<bool> _requestStoragePermission() async {
+    // Handle permission request for Android 13+ (API level 33)
+    if (Platform.isAndroid && (await Permission.storage.isDenied)) {
+      var status = await Permission.storage.request();
+      if (status.isGranted) return true;
+
+      // For Android 13+ use READ_MEDIA_IMAGES permission
+      if (await Permission.mediaLibrary.request().isGranted) return true;
+    }
+    return false;
+  }
+
+  // Future<void> _showDownloadNotification() async {
+  //   const AndroidNotificationDetails androidDetails =
+  //       AndroidNotificationDetails(
+  //     'download_channel', // Channel ID
+  //     'Downloads', // Channel name
+  //     channelDescription: 'Notification for downloaded files',
+  //     importance: Importance.max,
+  //     priority: Priority.high,
+  //     ticker: 'ticker',
+  //   );
+
+  //   const NotificationDetails notificationDetails =
+  //       NotificationDetails(android: androidDetails);
+
+  //   await flutterLocalNotificationsPlugin.show(
+  //     0,
+  //     'Download Complete',
+  //     'QR Code saved successfully to Downloads folder',
+  //     notificationDetails,
+  //   );
+  // }
+
+  Future<void> _showDownloadNotification() async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'download_channel', // Channel ID
+      'Downloads', // Channel name
+      channelDescription: 'Notification for downloaded files',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker',
+      icon: '@mipmap/launcher_icon',
+    );
+
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Download Complete',
+      'QR Code saved successfully to Downloads folder',
+      notificationDetails,
+    );
   }
 }

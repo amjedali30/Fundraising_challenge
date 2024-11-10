@@ -45,7 +45,7 @@ class ContributionModel with ChangeNotifier {
         'count': count,
         'createdAt': FieldValue.serverTimestamp(),
         'paymentStatus': "not paid",
-        'isDeliver': false,
+        'isDeliver': "Not Delivered",
         "paymentProof": "",
         "reciptImage": ""
       });
@@ -81,5 +81,26 @@ class ContributionModel with ChangeNotifier {
         .orderBy('timestamp', descending: true)
         .limit(1)
         .snapshots();
+  }
+
+  Stream<bool> checkMaintenanceStatusStream() {
+    try {
+      CollectionReference collectionReference =
+          FirebaseFirestore.instance.collection('appStatus');
+
+      // Use snapshots() to get a stream of real-time updates
+      return collectionReference.snapshots().map((querySnapshot) {
+        // Get the maintenance status from the first document
+        if (querySnapshot.docs.isNotEmpty) {
+          return querySnapshot.docs[0]['isMaintenance'] as bool;
+        } else {
+          return false; // Default to false if no documents found
+        }
+      });
+    } catch (e) {
+      print("Error fetching maintenance status: $e");
+      return Stream.value(
+          false); // Return a stream with a default value (false)
+    }
   }
 }

@@ -12,8 +12,19 @@ class RefactoredContainer extends StatelessWidget {
       width: double.infinity,
       margin: EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
-        color: Color.fromARGB(255, 61, 65, 101),
+        border: Border.all(
+          color: Color.fromARGB(255, 61, 65, 101),
+        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3), // Shadow color
+            spreadRadius: 2, // How much the shadow spreads
+            blurRadius: 10, // Softness of the shadow
+            offset: Offset(0, 4), // Position of the shadow (x, y)
+          ),
+        ],
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
@@ -35,9 +46,19 @@ class RefactoredContainer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildText(doc['contributorName'],
-              fontWeight: FontWeight.bold, fontSize: 17),
-          _buildText(doc['address']),
+          Row(
+            children: [
+              Text("Name : "),
+              _buildText(doc['contributorName'],
+                  fontWeight: FontWeight.bold, fontSize: 17),
+            ],
+          ),
+          Row(
+            children: [
+              Text("Address : "),
+              _buildText(doc['address']),
+            ],
+          ),
           _buildPaymentAndDeliveryStatus(doc),
         ],
       ),
@@ -51,7 +72,7 @@ class RefactoredContainer extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildText(doc['count'].toString(),
-              fontWeight: FontWeight.bold, fontSize: 17),
+              fontWeight: FontWeight.bold, fontSize: 20),
           SizedBox(height: 10),
           _buildText('Hadiya'),
         ],
@@ -66,7 +87,7 @@ class RefactoredContainer extends StatelessWidget {
       style: TextStyle(
         fontFamily: "Poppins-Medium",
         fontWeight: fontWeight,
-        color: Colors.white,
+        color: Color.fromARGB(255, 61, 65, 101),
         fontSize: fontSize,
       ),
     );
@@ -75,10 +96,33 @@ class RefactoredContainer extends StatelessWidget {
   Widget _buildPaymentAndDeliveryStatus(dynamic doc) {
     return Row(
       children: [
-        _buildStatusText('Payment Status: ', doc['paymentStatus']),
+        _buildStatusText('Payment Status : ', doc['paymentStatus']),
         SizedBox(width: 20),
-        _buildStatusText(
-            'Delivery: ', doc['isDeliver'] ? 'Delivered' : 'Not Delivered'),
+        Row(
+          children: [
+            Text(
+              "Delivery : ",
+              style: TextStyle(
+                color: Color.fromARGB(255, 61, 65, 101),
+              ),
+            ),
+            Container(
+              height: 10,
+              width: 10,
+              decoration: BoxDecoration(
+                color: doc['isDeliver'] == "Not Delivered"
+                    ? Colors.red
+                    : Colors.green,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        )
+        // _buildStatusText(
+        //     'Delivery: ',
+        //     doc['isDeliver'] == "'Not Delivered"
+        //         ? 'Delivered'
+        //         : 'Not Delivered'),
       ],
     );
   }
@@ -86,23 +130,21 @@ class RefactoredContainer extends StatelessWidget {
   Widget _buildStatusText(String label, String status) {
     Color statusColor;
 
-    if (label == 'Payment Status: ') {
-      if (status == "not paid") {
-        statusColor = Colors.red;
-      } else if (status == "Pending") {
-        statusColor = Colors.orange;
-      } else {
-        statusColor = Colors.green;
-      }
+    if (status == "not paid") {
+      statusColor = Colors.red;
+    } else if (status == "Pending") {
+      statusColor = Colors.orange;
     } else {
-      statusColor = status == 'Not Delivered' ? Colors.red : Colors.green;
+      statusColor = Colors.green;
     }
 
     return Row(
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(
+            color: Color.fromARGB(255, 61, 65, 101),
+          ),
         ),
         Container(
           height: 10,

@@ -14,7 +14,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
+  bool _isPasswordVisible = false;
   Future<void> _signUp() async {
     if (_usernameController.text.isNotEmpty &&
         _phoneController.text.isNotEmpty &&
@@ -68,7 +68,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
-
+              // Positioned(
+              //     top: MediaQuery.of(context).size.height * 0.05,
+              //     left: 20,
+              //     child: IconButton(
+              //         color: Colors.white,
+              //         onPressed: () {
+              //           Navigator.pop(context);
+              //         },
+              //         iconSize: 30,
+              //         icon: Icon(Icons.arrow_back))),
               Container(
                 width: double.infinity,
                 height: 300,
@@ -149,9 +158,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             labelText: 'Password',
                             labelStyle:
                                 TextStyle(color: AppColors.textSecondary),
-                            suffixIcon: Icon(
-                              Icons.lock,
-                              color: AppColors.textSecondary,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: AppColors.textSecondary,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isPasswordVisible = !_isPasswordVisible;
+                                });
+                              },
                             ),
                             border: OutlineInputBorder(
                               borderRadius:
@@ -163,7 +181,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             contentPadding: EdgeInsets.symmetric(
                                 vertical: 10.0, horizontal: 16.0),
                           ),
-                          obscureText: true,
+                          obscureText: !_isPasswordVisible,
                         ),
                         SizedBox(height: 30),
                         ElevatedButton(
