@@ -26,12 +26,25 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UIBackgroundModes</key>
+	<array>
+	<string>fetch</string>
+	<string>remote-notification</string>
+	</array>
+	<key>NSLocalNotificationAlertSound</key>
+	<true/>
+	<key>NSLocalNotificationAlertBody</key>
+	<true/>
+	<key>NSLocalNotificationAlertTitle</key>
+	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
     <string>This app requires access to your photo library to upload images.</string>
 	<key>NSCameraUsageDescription</key>
     <string>We need access to your camera to take pictures.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>We need access to your microphone for videos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need permission to save the downloaded image to your photo library.</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>

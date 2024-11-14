@@ -217,7 +217,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                       children: [
                         ElevatedButton(
                           onPressed: () {
-                            print(userName);
                             _showUploadDialogForRec(context);
                           },
                           child: Text('Photo Receipt'),
@@ -246,7 +245,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                             elevation: 5, // Shadow elevation
                           ),
                           onPressed: () {
-                            print(userName);
                             downloadAndShareReceipt(reciptImage);
                           },
                           child: Text('Download Phtoto'),
@@ -441,9 +439,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             ),
             TextButton(
               onPressed: () async {
-                print("-----");
                 if (stringForRec != null) {
-                  print(_imageFile!.path);
                   showDialog(
                     context: context,
                     builder: (context) {
@@ -502,12 +498,10 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       );
       return;
     }
-    print("------  ------");
-    print(_imageFile!.path);
+
     try {
       String random4Digit = generateRandom4DigitNumber();
-      print(random4Digit);
-      print(_imageFile!.path);
+
       var request = http.MultipartRequest('POST', uri);
       // Add the file
       request.files
@@ -524,7 +518,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
       // Send the request
       var response = await request.send();
-      print(response);
+
       // if (response.statusCode == 200) {
       //   var responseData = await http.Response.fromStream(response);
       //   var responseBody = responseData.body;
@@ -540,11 +534,11 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           final imageUrl = responseBody['data'];
 
           reciptImage = "https://socialwaves.in/${imageUrl}";
-          print(reciptImage);
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Image uploaded successfully!')),
           );
-          print('Processed Image URL: $reciptImage');
+
           setState(() {});
           Navigator.pop(context);
           Navigator.pop(context);

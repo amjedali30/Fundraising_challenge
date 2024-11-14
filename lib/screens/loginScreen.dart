@@ -38,8 +38,9 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setString('passwordHash', userData['passwordHash']);
       await prefs.setString('username', userData['username']);
 
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => ContributionScreen()),
+        (Route<dynamic> route) => false,
       );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login Success')),

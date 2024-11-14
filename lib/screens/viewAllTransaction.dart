@@ -17,6 +17,7 @@ class _ViewalltransactionState extends State<Viewalltransaction> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         elevation: 2,
         backgroundColor: Theme.of(context).primaryColor,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:date_palm_challenge/servise/notifications.dart';
@@ -16,6 +17,7 @@ import '../constent/app_colors.dart';
 import '../constent/app_responsive_size.dart';
 import '../constent/app_size.dart';
 import '../models/contribution_model.dart';
+import '../widget/splashScreen.dart';
 import '../widget/transactionCard.dart';
 import 'contributeForm.dart';
 import 'loginScreen.dart';
@@ -35,6 +37,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
   @override
   void initState() {
     super.initState();
+
     _loadUserData();
   }
 
@@ -99,14 +102,17 @@ class _ContributionScreenState extends State<ContributionScreen> {
       ),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text(
-          'ഈത്തപ്പഴ ചലഞ്ച്',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: AppSizes.fontLarge,
-            color: AppColors.textSecondary,
-          ),
-        ),
+        title: username != null
+            ? Text(
+                "Hi , ${username}",
+                style: TextStyle(
+                  fontFamily: "Poppins-Medium",
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textSecondary,
+                  fontSize: 17,
+                ),
+              )
+            : null,
         actions: [
           GestureDetector(
             onTap: () {
@@ -125,7 +131,9 @@ class _ContributionScreenState extends State<ContributionScreen> {
             },
             child: username != null
                 ? CircleAvatar(
-                    child: Icon(Icons.face),
+                    radius: 20,
+                    backgroundColor: Color.fromARGB(255, 241, 230, 230),
+                    backgroundImage: AssetImage("assets/face1.png"),
                   )
                 : Text(
                     "Login",
@@ -137,21 +145,10 @@ class _ContributionScreenState extends State<ContributionScreen> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (username != null)
-                Text(
-                  "Hi , ${username}",
-                  style: TextStyle(
-                    fontFamily: "Poppins-Medium",
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textSecondary,
-                    fontSize: 17,
-                  ),
-                ),
-              SizedBox(height: 10),
               Container(
                 width: double.infinity,
                 height: 200,
@@ -366,32 +363,70 @@ class _ContributionScreenState extends State<ContributionScreen> {
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Column(
                                   children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        _downloadQRCode(
-                                            context, data["qr_image"]);
-                                      },
-                                      child: Container(
-                                          child: Image.memory(
-                                              base64Decode(data["qr_image"]))),
-                                    ),
+                                    if (data["qr_image"] != "")
+                                      GestureDetector(
+                                        onTap: () {
+                                          _downloadQRCode(
+                                              context, data["qr_image"]);
+                                        },
+                                        child: Container(
+                                            height: 250,
+                                            child: Image.memory(base64Decode(
+                                                data["qr_image"]))),
+                                      ),
                                     SizedBox(
                                         height:
                                             10), // Space between image and UPID
 
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: InkWell(
-                                        onTap: () {
-                                          Clipboard.setData(ClipboardData(
-                                              text: data["upiId"]));
-                                          final snackBar = SnackBar(
-                                              content: const Text(
-                                                  "Copied UPI ID to clipboard"));
+                                    if (data["upiId"] != "")
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(
+                                                text: data["upiId"]));
+                                            final snackBar = SnackBar(
+                                                content: const Text(
+                                                    "Copied UPI ID to clipboard"));
 
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(snackBar);
-                                        },
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(snackBar);
+                                          },
+                                          child: Container(
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .height *
+                                                .07,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  "UPI ID: ${data["upiId"]}",
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 5),
+                                                Icon(
+                                                  Icons.copy,
+                                                  size: 22,
+                                                  color: Colors.blueGrey,
+                                                )
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    if (data["ac_no"] != "")
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
                                         child: Container(
                                           height: MediaQuery.of(context)
                                                   .size
@@ -402,28 +437,80 @@ class _ContributionScreenState extends State<ContributionScreen> {
                                             borderRadius:
                                                 BorderRadius.circular(10),
                                           ),
-                                          child: Row(
+                                          child: Column(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                                MainAxisAlignment.spaceEvenly,
                                             children: [
-                                              Text(
-                                                "UPI ID: ${data["upiId"]}",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
+                                              InkWell(
+                                                onTap: () {
+                                                  Clipboard.setData(
+                                                      ClipboardData(
+                                                          text: data["ac_no"]));
+                                                  final snackBar = SnackBar(
+                                                      content: const Text(
+                                                          "Copied Account number to clipboard"));
+
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(snackBar);
+                                                },
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      "A/C NO : ${data["ac_no"]}",
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    Icon(
+                                                      Icons.copy,
+                                                      size: 22,
+                                                      color: Colors.blueGrey,
+                                                    )
+                                                  ],
                                                 ),
                                               ),
-                                              SizedBox(width: 5),
-                                              Icon(
-                                                Icons.copy,
-                                                size: 22,
-                                                color: Colors.blueGrey,
-                                              )
+                                              InkWell(
+                                                onTap: () {
+                                                  Clipboard.setData(
+                                                      ClipboardData(
+                                                          text: data["ifsc"]));
+                                                  final snackBar = SnackBar(
+                                                      content: const Text(
+                                                          "Copied IFSC to clipboard"));
+
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(snackBar);
+                                                },
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      "IFSC : ${data["ifsc"]}",
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 5),
+                                                    Icon(
+                                                      Icons.copy,
+                                                      size: 22,
+                                                      color: Colors.blueGrey,
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -484,7 +571,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Top List",
+                      "Today Top List",
                       style: TextStyle(
                         fontFamily: "Poppins-Medium",
                         fontWeight: FontWeight.bold,
@@ -527,13 +614,22 @@ class _ContributionScreenState extends State<ContributionScreen> {
                 stream: FirebaseFirestore.instance
                     .collection('contributions')
                     .orderBy('count', descending: true)
+                    .where('createdAt',
+                        isGreaterThanOrEqualTo: DateTime.now().subtract(
+                            Duration(
+                                hours: DateTime.now().hour,
+                                minutes: DateTime.now().minute,
+                                seconds: DateTime.now().second,
+                                milliseconds: DateTime.now().millisecond,
+                                microseconds: DateTime.now().microsecond)))
+                    .orderBy('createdAt', descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(child: Text('No contributions yet.'));
+                    return Center(child: Text('No today contributions yet.'));
                   }
                   return ListView(
                     physics: const NeverScrollableScrollPhysics(),

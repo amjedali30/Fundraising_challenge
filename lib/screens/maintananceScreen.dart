@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:date_palm_challenge/widget/splashScreen.dart';
 import 'package:flutter/material.dart';
 
 class MaintenanceScreen extends StatefulWidget {
@@ -8,6 +11,12 @@ class MaintenanceScreen extends StatefulWidget {
 }
 
 class _MaintenanceScreenState extends State<MaintenanceScreen> {
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
