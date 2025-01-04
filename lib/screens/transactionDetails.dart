@@ -2,15 +2,19 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firbase_storage;
 import 'package:date_palm_challenge/constent/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:screenshot/screenshot.dart';
+// import 'package:share_plus/share_plus.dart';
 import '../constent/app_size.dart';
 import '../servise/notifications.dart';
 
@@ -28,10 +32,11 @@ class TransactionDetailScreen extends StatefulWidget {
 class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   File? _imageFile; // Variable to store the selected image
   final ImagePicker _picker = ImagePicker(); // Initialize image picker
-  String? base64ImageString; // Image data in base64 format
+
   String? stringForRec;
   String userName = "";
   String reciptImage = "";
+  final ScreenshotController screenshotController = ScreenshotController();
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
@@ -40,7 +45,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         _imageFile = File(pickedFile.path);
       });
       final bytes = await _imageFile!.readAsBytes();
-      base64ImageString = base64Encode(bytes);
+
       Navigator.of(context).pop();
       _showUploadDialog(context);
     }
@@ -193,10 +198,19 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                                       onTap: () {
                                         _showUploadDialog(context);
                                       },
-                                      child: Icon(
-                                        Icons.attach_file,
-                                        color: const Color.fromARGB(
-                                            255, 243, 33, 61),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.attach_file,
+                                            color: const Color.fromARGB(
+                                                255, 243, 33, 61),
+                                          ),
+                                          Text(
+                                            " - Upload Screenshot",
+                                            style:
+                                                TextStyle(color: Colors.grey),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                 ],
@@ -226,7 +240,9 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                     SizedBox(height: 10),
                     if (reciptImage != "")
                       Container(
-                        child: Image(image: NetworkImage(reciptImage)),
+                        child: Screenshot(
+                            controller: screenshotController,
+                            child: Image(image: NetworkImage(reciptImage))),
                       ),
                     if (reciptImage != "") SizedBox(height: 10),
                     if (reciptImage != "")
@@ -245,9 +261,14 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
                             elevation: 5, // Shadow elevation
                           ),
                           onPressed: () {
-                            downloadAndShareReceipt(reciptImage);
+                            print(reciptImage);
+                            Platform.isAndroid
+                                ? downloadAndShareReceipt(reciptImage)
+                                : _takeAndSaveScreenshot();
                           },
-                          child: Text('Download Phtoto'),
+                          child: Text(Platform.isAndroid
+                              ? 'Download and Share'
+                              : "Take ScreenShot and Share"),
                         ),
                       ),
                   ],
@@ -298,16 +319,22 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (base64ImageString != null)
+              if (_imageFile != null)
                 Container(
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey),
                     borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: MemoryImage(base64Decode(base64ImageString!)),
-                      fit: BoxFit.cover,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      _imageFile!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit
+                          .cover, // Ensure the image fits well within the box
                     ),
                   ),
                 ),
@@ -324,7 +351,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  base64ImageString = null;
+                  _imageFile = null;
                   _imageFile = null;
                   Navigator.of(context).pop();
                 });
@@ -333,58 +360,88 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
             ),
             TextButton(
               onPressed: () async {
-                if (base64ImageString != null) {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        content: Container(
-                          width: 100,
-                          height: 100,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.blue),
-                              strokeWidth: 2,
+                print("--");
+                try {
+                  if (_imageFile != null) {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          content: Container(
+                            width: 100,
+                            height: 100,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.blue),
+                                strokeWidth: 2,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('contributions')
-                        .doc(widget.docId)
-                        .update({
-                      "paymentProof": base64ImageString,
-                      "paymentStatus": "Pending",
-                    });
-                    setState(() {
-                      base64ImageString = null;
-                      _imageFile = null;
-                    });
-                    Navigator.pop(context); // Close the progress dialog
-                    Navigator.pop(context); // Close the upload dialog
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              'Payment Proof and Status updated successfully')),
+                        );
+                      },
                     );
-                  } catch (e) {
-                    setState(() {
-                      base64ImageString = null;
-                      _imageFile = null;
-                    });
-                    Navigator.pop(context); // Close the progress dialog
-                    Navigator.pop(context); // Close the upload dialog
-                    print("Error updating Firestore: $e");
+                    try {
+                      String fileName =
+                          'payment_proof_${DateTime.now().millisecondsSinceEpoch}.png';
+                      print(fileName);
+                      // Reference storageReference =
+                      //     FirebaseStorage.instance.ref().child('qr/$fileName');
+                      // UploadTask uploadTask =
+                      //     storageReference.putFile(_imageFile!);
+                      // print(uploadTask);
+                      // // Wait for the upload to complete
+                      // TaskSnapshot taskSnapshot = await uploadTask;
+
+                      // // Step 2: Get the download URL after the upload is complete
+                      // String downloadUrl =
+                      //     await taskSnapshot.ref.getDownloadURL();
+
+                      final firbase_storage.FirebaseStorage storage =
+                          firbase_storage.FirebaseStorage.instance;
+                      firbase_storage.TaskSnapshot taskSnapshot = await storage
+                          .ref('screenshots/$fileName')
+                          .putFile(_imageFile!);
+                      final String downloadUrl =
+                          await taskSnapshot.ref.getDownloadURL();
+
+                      print(downloadUrl);
+
+                      await FirebaseFirestore.instance
+                          .collection('contributions')
+                          .doc(widget.docId)
+                          .update({
+                        "paymentProof": downloadUrl,
+                        "paymentStatus": "Pending",
+                      });
+                      setState(() {
+                        _imageFile = null;
+                        _imageFile = null;
+                      });
+                      Navigator.pop(context); // Close the progress dialog
+                      Navigator.pop(context); // Close the upload dialog
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                'Payment Proof and Status updated successfully')),
+                      );
+                    } catch (e) {
+                      setState(() {
+                        _imageFile = null;
+                        _imageFile = null;
+                      });
+                      Navigator.pop(context); // Close the progress dialog
+                      Navigator.pop(context); // Close the upload dialog
+                      print("Error updating Firestore: $e");
+                    }
+                  } else {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('No image selected to upload')),
+                    );
                   }
-                } else {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please select an image first')),
-                  );
+                } catch (e) {
+                  print(e);
                 }
               },
               child: Text('Submit'),
@@ -644,6 +701,91 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   //   }
   // }
 
+// -------------------------------------------
+
+  // Future<void> downloadAndShareReceipt(String photoUrl) async {
+  //   setState(() {
+  //     _isDownloading = true;
+  //   });
+
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(
+  //       content: Padding(
+  //         padding: EdgeInsets.only(top: 8.0),
+  //         child: Text("Downloading..."),
+  //       ),
+  //     ),
+  //   );
+
+  //   try {
+  //     // Request storage permission for Android (iOS does not require storage permission)
+  //     if (Platform.isAndroid && !await _requestStoragePermission()) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Storage permission denied')),
+  //       );
+  //       return;
+  //     }
+
+  //     // // Get a suitable directory for both iOS and Android
+  //     // final directory = Platform.isAndroid
+  //     //     ? await getExternalStorageDirectory() // Android
+  //     //     : await getApplicationDocumentsDirectory(); // iOS
+  //     // final filePath = '${directory!.path}/receipt_image.png';
+
+  //     // Save to the public Downloads folder
+  //     final directory = Directory('/storage/emulated/0/Download');
+  //     String fileName =
+  //         'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
+  //     final filePath = '${directory.path}/$fileName';
+  //     // final filePath = '${directory.path}/receipt_image.png';
+  //     print(filePath);
+  //     // Share.share('Share Image: $filePath');
+  //     // Download the image from the URL
+  //     final response = await http.get(Uri.parse(photoUrl));
+
+  //     if (response.statusCode == 200) {
+  //       // Write the downloaded image bytes to the file
+  //       final file = File(filePath);
+  //       await file.writeAsBytes(response.bodyBytes);
+
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Image downloaded successfully at $filePath')),
+  //       );
+
+  //       // Optionally, show a download notification (Android only)
+  //       if (Platform.isAndroid) {
+  //         await _showDownloadNotification();
+  //       }
+  //     } else {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //             content: Text('Failed to download image: Invalid URL')),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print(e);
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Failed to download image: $e')),
+  //     );
+  //   } finally {
+  //     setState(() {
+  //       _isDownloading = false;
+  //     });
+  //   }
+  // }
+
+  // Future<bool> _requestStoragePermission() async {
+  //   // Handle permission request for Android 13+ (API level 33)
+  //   if (Platform.isAndroid && (await Permission.storage.isDenied)) {
+  //     var status = await Permission.storage.request();
+  //     if (status.isGranted) return true;
+
+  //     // For Android 13+ use READ_MEDIA_IMAGES permission
+  //     if (await Permission.mediaLibrary.request().isGranted) return true;
+  //   }
+  //   return false;
+  // }
+
   Future<void> downloadAndShareReceipt(String photoUrl) async {
     setState(() {
       _isDownloading = true;
@@ -659,7 +801,7 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     );
 
     try {
-      // Request storage permission for Android (iOS does not require storage permission)
+      // Request storage permission for Android
       if (Platform.isAndroid && !await _requestStoragePermission()) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Storage permission denied')),
@@ -667,34 +809,57 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
         return;
       }
 
-      // // Get a suitable directory for both iOS and Android
-      // final directory = Platform.isAndroid
-      //     ? await getExternalStorageDirectory() // Android
-      //     : await getApplicationDocumentsDirectory(); // iOS
-      // final filePath = '${directory!.path}/receipt_image.png';
-
-      // Save to the public Downloads folder
-      final directory = Directory('/storage/emulated/0/Download');
-      String fileName =
-          'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
-      final filePath = '${directory.path}/$fileName';
-      // final filePath = '${directory.path}/receipt_image.png';
+      // Request photo library permission for iOS
+      if (Platform.isIOS) {
+        var photoStatus = await Permission.photos.status;
+        if (!photoStatus.isGranted) {
+          photoStatus = await Permission.photos.request();
+          if (!photoStatus.isGranted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Photo library permission denied')),
+            );
+            return;
+          }
+        }
+      }
 
       // Download the image from the URL
       final response = await http.get(Uri.parse(photoUrl));
 
       if (response.statusCode == 200) {
-        // Write the downloaded image bytes to the file
-        final file = File(filePath);
-        await file.writeAsBytes(response.bodyBytes);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Image downloaded successfully at $filePath')),
-        );
-
-        // Optionally, show a download notification (Android only)
+        // Handle saving based on platform
         if (Platform.isAndroid) {
+          // Save to Downloads directory for Android
+          final directory = Directory('/storage/emulated/0/Download');
+          String fileName =
+              'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
+          final filePath = '${directory.path}/$fileName';
+          final file = File(filePath);
+          await file.writeAsBytes(response.bodyBytes);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Image downloaded successfully at $filePath')),
+          );
+
+          // Show download notification (Android only)
           await _showDownloadNotification();
+        } else if (Platform.isIOS) {
+          // Save to Photos library for iOS
+          final result = await ImageGallerySaver.saveImage(
+            Uint8List.fromList(response.bodyBytes),
+            name: 'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png',
+          );
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result['isSuccess']
+                    ? 'Image saved to Photos successfully'
+                    : 'Failed to save image',
+              ),
+            ),
+          );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -715,15 +880,18 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   }
 
   Future<bool> _requestStoragePermission() async {
-    // Handle permission request for Android 13+ (API level 33)
-    if (Platform.isAndroid && (await Permission.storage.isDenied)) {
-      var status = await Permission.storage.request();
-      if (status.isGranted) return true;
+    if (Platform.isAndroid) {
+      // Handle permission request for Android 13+ (API level 33)
+      if (await Permission.storage.isDenied) {
+        var status = await Permission.storage.request();
+        if (status.isGranted) return true;
 
-      // For Android 13+ use READ_MEDIA_IMAGES permission
-      if (await Permission.mediaLibrary.request().isGranted) return true;
+        // For Android 13+ use READ_MEDIA_IMAGES permission
+        if (await Permission.mediaLibrary.request().isGranted) return true;
+      }
+      return false;
     }
-    return false;
+    return true; // For iOS, always return true
   }
 
   Future<void> _showDownloadNotification() async {
@@ -747,5 +915,33 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
       'Photo saved successfully to Downloads folder',
       notificationDetails,
     );
+  }
+
+  Future<void> _takeAndSaveScreenshot() async {
+    try {
+      // Capture the screenshot
+      screenshotController.capture().then((Uint8List? image) async {
+        print(image);
+        if (image != null) {
+          // Request permission to access the photo gallery
+          final permission = await PhotoManager.requestPermissionExtend();
+          if (permission.isAuth) {
+            // Get the photo album
+            final album = await PhotoManager.editor
+                .saveImage(image, filename: 'ScreenShot');
+            print(album);
+            if (album != null) {
+              print('Screenshot saved to gallery');
+            }
+          } else {
+            print('Permission denied to access photo gallery');
+          }
+        }
+      }).catchError((e) {
+        print('Error capturing screenshot: $e');
+      });
+    } catch (e) {
+      print('Error: $e');
+    }
   }
 }

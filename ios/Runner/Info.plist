@@ -38,7 +38,7 @@
 	<key>NSLocalNotificationAlertTitle</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-    <string>This app requires access to your photo library to upload images.</string>
+    <string>This app requires access to your photo library to download images.</string>
 	<key>NSCameraUsageDescription</key>
     <string>We need access to your camera to take pictures.</string>
     <key>NSMicrophoneUsageDescription</key>

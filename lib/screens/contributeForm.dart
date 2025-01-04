@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -25,7 +26,7 @@ class _ContributeFormState extends State<ContributeForm> {
   int selectedContribution = 0;
   bool isSelect = false;
   bool isSelf = true; // true for Self, false for Someone Else
-
+  double totalAmt = 0;
   void _updateContribution(int value) {
     setState(() {
       selectedContribution = value;
@@ -69,21 +70,111 @@ class _ContributeFormState extends State<ContributeForm> {
                     angle: 3.14159, // 180 degrees in radians
                     child: Image.asset(
                       'assets/bg1.jpeg', // Replace with your image asset
+
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
               ),
-              Container(
-                width: double.infinity,
-                height: 300,
-                child: Image(
-                  image: AssetImage("assets/image1.png"),
-                  fit: BoxFit.contain,
-                ),
+              Positioned(
+                top: MediaQuery.of(context).size.height * 0.005,
+                left: 0,
+                right: 0,
+                child: Container(
+                    width: double.infinity,
+                    height: 200,
+                    // color: Colors.amber,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('banner')
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Center(
+                                child:
+                                    CircularProgressIndicator(), // Show loading spinner while fetching data
+                              );
+                            }
+
+                            if (snapshot.hasError) {
+                              return Center(
+                                  child: Icon(Icons
+                                      .error)); // Show error icon if there's an error
+                            }
+
+                            if (!snapshot.hasData ||
+                                snapshot.data!.docs.isEmpty) {
+                              return Center(
+                                child: Image.asset(
+                                  "assets/banner2.png", // Default image if no banners found
+                                  fit: BoxFit.fill,
+                                ),
+                              );
+                            }
+
+                            // Extract the first banner URL
+                            String bnrUrl = snapshot.data!.docs[0]["ban2"] ??
+                                ""; // Ensure ban2 is not null
+
+                            // If bnrUrl is empty, show the default image
+                            if (bnrUrl.isNotEmpty) {
+                              return Image.network(
+                                bnrUrl,
+                                fit: BoxFit.fill,
+                                loadingBuilder: (BuildContext context,
+                                    Widget child,
+                                    ImageChunkEvent? loadingProgress) {
+                                  if (loadingProgress == null) {
+                                    return child; // Image has loaded
+                                  } else {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                (loadingProgress
+                                                        .expectedTotalBytes ??
+                                                    1)
+                                            : null,
+                                      ), // Show loading indicator while the image is loading
+                                    );
+                                  }
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Image.asset(
+                                      "assets/banner2.png", // Default image if no banners found
+                                      fit: BoxFit.fill,
+                                    ),
+                                  ); // Show error icon if image fails to load
+                                },
+                              );
+                            } else {
+                              return Image.asset(
+                                "assets/banner2.png", // Default fallback image if bnrUrl is empty
+                                fit: BoxFit.fill,
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    )
+
+                    //  Image(
+                    //   image: AssetImage("assets/image1.png"),
+                    //   fit: BoxFit.contain,
+                    // ),
+                    ),
               ),
               Positioned(
-                top: MediaQuery.of(context).size.height * 0.3,
+                top: MediaQuery.of(context).size.height * 0.23,
                 left: 0,
                 right: 0,
                 child: Padding(
@@ -114,7 +205,7 @@ class _ContributeFormState extends State<ContributeForm> {
                         SizedBox(height: 20),
                         Wrap(
                           spacing: 8.0,
-                          children: [3, 5, 10, 50, 100].map((amount) {
+                          children: [2, 3, 5, 10].map((amount) {
                             return ChoiceChip(
                               label: Text(
                                 '$amount',
@@ -127,6 +218,7 @@ class _ContributeFormState extends State<ContributeForm> {
                               selected: selectedContribution == amount,
                               onSelected: (isSelected) {
                                 if (isSelected) _updateContribution(amount);
+                                totalAmt = (amount) * 500;
                               },
                             );
                           }).toList(),
@@ -144,8 +236,22 @@ class _ContributeFormState extends State<ContributeForm> {
                           onChanged: (value) {
                             setState(() {
                               selectedContribution = int.tryParse(value) ?? 0;
+                              totalAmt = (int.tryParse(value) ?? 0) * 500;
                             });
                           },
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Text(
+                              "Total Amount :",
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            Text(
+                              totalAmt.toString(),
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 20),
                         TextField(
@@ -177,7 +283,7 @@ class _ContributeFormState extends State<ContributeForm> {
                             ),
                             Expanded(
                               child: RadioListTile<bool>(
-                                title: Text('Someone Else'),
+                                title: Text('For Others'),
                                 value: false,
                                 groupValue: isSelf,
                                 onChanged: (value) {

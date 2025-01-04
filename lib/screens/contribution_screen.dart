@@ -6,23 +6,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:screenshot/screenshot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constent/app_colors.dart';
 import '../constent/app_responsive_size.dart';
 import '../constent/app_size.dart';
 import '../models/contribution_model.dart';
-import '../widget/splashScreen.dart';
 import '../widget/transactionCard.dart';
 import 'contributeForm.dart';
 import 'loginScreen.dart';
 import 'profile.dart';
 import 'viewAllTransaction.dart';
+import 'package:http/http.dart' as http;
 
 class ContributionScreen extends StatefulWidget {
   @override
@@ -41,6 +44,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
     _loadUserData();
   }
 
+  String bnrUrl = "";
   Future<void> _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -48,6 +52,41 @@ class _ContributionScreenState extends State<ContributionScreen> {
       phoneNumber = prefs.getString('phoneNumber');
       // _phoneController.text = phoneNumber.toString();
     });
+
+    List<Map<String, dynamic>> sliderList = [];
+    try {
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance.collection('banner').get();
+
+      // Clear the sliderList to avoid appending on every call
+      sliderList.clear();
+
+      for (var doc in querySnapshot.docs) {
+        // Assuming each document has an 'id' and 'ban2' field.
+        Map<String, dynamic> a = {
+          "id": doc.id,
+          "ban2": doc["ban2"] ?? "", // Ensure ban2 is not null
+        };
+        sliderList.add(a);
+      }
+
+      // Update the `bnrUrl` with the first banner (if available)
+      if (sliderList.isNotEmpty) {
+        setState(() {
+          bnrUrl = sliderList[0]["ban2"];
+        });
+      } else {
+        // Handle case when no banners are found
+        setState(() {
+          bnrUrl = ""; // or a default URL or fallback
+        });
+      }
+    } catch (e) {
+      print("Error fetching banner data: $e");
+      setState(() {
+        bnrUrl = ""; // Set a fallback URL if there's an error
+      });
+    }
   }
 
   bool _isExpanded = false;
@@ -156,9 +195,103 @@ class _ContributionScreenState extends State<ContributionScreen> {
                     BoxDecoration(borderRadius: BorderRadius.circular(15)),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    "assets/bannerImage.jpeg",
-                    fit: BoxFit.fill,
+                  // child: bnrUrl != ""
+                  //     ? Image.network(
+                  //         bnrUrl,
+                  //         fit: BoxFit.fill,
+                  //         loadingBuilder: (BuildContext context, Widget child,
+                  //             ImageChunkEvent? loadingProgress) {
+                  //           if (loadingProgress == null) {
+                  //             return child; // Image has loaded
+                  //           } else {
+                  //             return Center(
+                  //               child: CircularProgressIndicator(
+                  //                 value: loadingProgress.expectedTotalBytes !=
+                  //                         null
+                  //                     ? loadingProgress.cumulativeBytesLoaded /
+                  //                         (loadingProgress.expectedTotalBytes ??
+                  //                             1)
+                  //                     : null,
+                  //               ), // Show a loading indicator while the image is loading
+                  //             );
+                  //           }
+                  //         },
+                  //         errorBuilder: (context, error, stackTrace) {
+                  //           return Center(
+                  //               child: Icon(Icons
+                  //                   .error)); // Show error icon if image fails to load
+                  //         },
+                  //       )
+                  //     : Image.asset(
+                  //         "assets/banner2.png",
+                  //         fit: BoxFit.fill,
+                  //       ),
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('banner')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(
+                          child:
+                              CircularProgressIndicator(), // Show loading spinner while fetching data
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                            child: Icon(Icons
+                                .error)); // Show error icon if there's an error
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(
+                          child: Image.asset(
+                            "assets/banner2.png", // Default image if no banners found
+                            fit: BoxFit.fill,
+                          ),
+                        );
+                      }
+
+                      // Extract the first banner URL
+                      String bnrUrl = snapshot.data!.docs[0]["ban2"] ??
+                          ""; // Ensure ban2 is not null
+
+                      // If bnrUrl is empty, show the default image
+                      if (bnrUrl.isNotEmpty) {
+                        return Image.network(
+                          bnrUrl,
+                          fit: BoxFit.fill,
+                          loadingBuilder: (BuildContext context, Widget child,
+                              ImageChunkEvent? loadingProgress) {
+                            if (loadingProgress == null) {
+                              return child; // Image has loaded
+                            } else {
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          (loadingProgress.expectedTotalBytes ??
+                                              1)
+                                      : null,
+                                ), // Show loading indicator while the image is loading
+                              );
+                            }
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                                child: Icon(Icons
+                                    .error)); // Show error icon if image fails to load
+                          },
+                        );
+                      } else {
+                        return Image.asset(
+                          "assets/banner2.png", // Default fallback image if bnrUrl is empty
+                          fit: BoxFit.fill,
+                        );
+                      }
+                    },
                   ),
                 ),
               ),
@@ -335,17 +468,23 @@ class _ContributionScreenState extends State<ContributionScreen> {
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        InkWell(
-                                          onTap: () {
-                                            _downloadQRCode(
-                                                context, data["qr_image"]);
-                                          },
-                                          child: Icon(
-                                            Icons.download,
-                                            size: 22,
-                                            color: Colors.blueGrey,
+                                        if (_isExpanded)
+                                          InkWell(
+                                            onTap: () {
+                                              if (!Platform.isIOS) {
+                                                _downloadQRCode(
+                                                    context, data["qr_image"]);
+                                              } else {
+                                                print("-");
+                                                _takeAndSaveScreenshot();
+                                              }
+                                            },
+                                            child: Icon(
+                                              Icons.download,
+                                              size: 22,
+                                              color: Colors.blueGrey,
+                                            ),
                                           ),
-                                        ),
                                         SizedBox(width: 20),
                                         Icon(
                                           _isExpanded
@@ -370,9 +509,31 @@ class _ContributionScreenState extends State<ContributionScreen> {
                                               context, data["qr_image"]);
                                         },
                                         child: Container(
-                                            height: 250,
-                                            child: Image.memory(base64Decode(
-                                                data["qr_image"]))),
+                                          height: 250,
+                                          child: Screenshot(
+                                            controller: screenshotController,
+                                            child: Builder(
+                                              builder: (context) {
+                                                try {
+                                                  return Image(
+                                                    image: NetworkImage(
+                                                        data["qr_image"]),
+                                                  );
+                                                } catch (e) {
+                                                  print(
+                                                      "Error decoding image: $e");
+                                                  return Center(
+                                                    child: Text(
+                                                      "Invalid QR Code Image",
+                                                      style: TextStyle(
+                                                          color: Colors.red),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     SizedBox(
                                         height:
@@ -770,31 +931,78 @@ class _ContributionScreenState extends State<ContributionScreen> {
     //   });
     // }
     try {
-      // Request storage permission
+      // // Request storage permission
+      // if (await _requestStoragePermission()) {
+      //   // Request notification permission
+      //   // await _requestNotificationPermission();
+
+      //   // Decode the base64 image
+      //   final decodedBytes = base64Decode(base64Image);
+
+      //   // Get the Downloads directory
+      //   final directory = Directory('/storage/emulated/0/Download');
+      //   String fileName =
+      //       'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
+      //   final filePath = '${directory.path}/$fileName';
+
+      //   // Write the image bytes to the file
+      //   final file = File(filePath);
+      //   await file.writeAsBytes(decodedBytes);
+
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //         content: Text('QR Code downloaded successfully at $filePath')),
+      //   );
+
+      //   // Show download notification
+      //   await _showDownloadNotification();
+      // } else {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(content: Text('Storage permission denied')),
+      //   );
+      // }
+
       if (await _requestStoragePermission()) {
-        // Request notification permission
-        // await _requestNotificationPermission();
-
         // Decode the base64 image
-        final decodedBytes = base64Decode(base64Image);
 
-        // Get the Downloads directory
-        final directory = Directory('/storage/emulated/0/Download');
-        String fileName =
-            'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
-        final filePath = '${directory.path}/$fileName';
+        final response = await http.get(Uri.parse(base64Image));
+        if (response.statusCode == 200) {
+          final decodedBytes = response.bodyBytes;
+          if (Platform.isAndroid) {
+            // Android: Save to Downloads directory
+            final directory = Directory('/storage/emulated/0/Download');
+            String fileName =
+                'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
+            final filePath = '${directory.path}/$fileName';
+            final file = File(filePath);
+            await file.writeAsBytes(decodedBytes);
 
-        // Write the image bytes to the file
-        final file = File(filePath);
-        await file.writeAsBytes(decodedBytes);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content:
+                      Text('QR Code downloaded successfully at $filePath')),
+            );
+          } else if (Platform.isIOS) {
+            // iOS: Save to app's Documents directory or Photos library
+            final directory = await getApplicationDocumentsDirectory();
+            String fileName =
+                'receipt_image_${DateTime.now().millisecondsSinceEpoch}.png';
+            final filePath = '${directory.path}/$fileName';
+            final file = File(filePath);
+            await file.writeAsBytes(decodedBytes);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('QR Code downloaded successfully at $filePath')),
-        );
+            // Optionally save to Photos library
+            final result = await ImageGallerySaver.saveFile(filePath);
 
-        // Show download notification
-        await _showDownloadNotification();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['isSuccess']
+                    ? 'QR Code saved to Photos successfully'
+                    : 'Failed to save QR Code'),
+              ),
+            );
+          }
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Storage permission denied')),
@@ -811,14 +1019,34 @@ class _ContributionScreenState extends State<ContributionScreen> {
     }
   }
 
-  Future<bool> _requestStoragePermission() async {
-    // Handle permission request for Android 13+ (API level 33)
-    if (Platform.isAndroid && (await Permission.storage.isDenied)) {
-      var status = await Permission.storage.request();
-      if (status.isGranted) return true;
+  // Future<bool> _requestStoragePermission() async {
+  //   // Handle permission request for Android 13+ (API level 33)
+  //   if (Platform.isAndroid && (await Permission.storage.isDenied)) {
+  //     var status = await Permission.storage.request();
+  //     if (status.isGranted) return true;
 
-      // For Android 13+ use READ_MEDIA_IMAGES permission
-      if (await Permission.mediaLibrary.request().isGranted) return true;
+  //     // For Android 13+ use READ_MEDIA_IMAGES permission
+  //     if (await Permission.mediaLibrary.request().isGranted) return true;
+  //   }
+  //   return false;
+  // }
+
+  Future<bool> _requestStoragePermission() async {
+    if (Platform.isAndroid) {
+      // Handle storage permission for Android
+      if (await Permission.storage.isDenied) {
+        var status = await Permission.storage.request();
+        if (status.isGranted) return true;
+
+        // For Android 13+ use READ_MEDIA_IMAGES permission
+        if (await Permission.mediaLibrary.request().isGranted) return true;
+      }
+    } else if (Platform.isIOS) {
+      // Handle media library permission for iOS
+      if (await Permission.photos.isDenied) {
+        var status = await Permission.photos.request();
+        if (status.isGranted) return true;
+      }
     }
     return false;
   }
@@ -866,5 +1094,72 @@ class _ContributionScreenState extends State<ContributionScreen> {
       'QR Code saved successfully to Downloads folder',
       notificationDetails,
     );
+  }
+
+  final ScreenshotController screenshotController = ScreenshotController();
+  Future<void> _takeAndSaveScreenshot() async {
+    try {
+      // setState(() {
+      //   _isDownloading = true;
+      // });
+
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: Padding(
+      //       padding: const EdgeInsets.only(top: 8.0),
+      //       child: Row(
+      //         children: [
+      //           Text("Downloading...."),
+      //         ],
+      //       ),
+      //     ),
+      //   ),
+      // );
+      // Capture the screenshot
+      // print(screenshotController.capture());
+      screenshotController.capture().then((Uint8List? imageScre) async {
+        print(imageScre);
+        if (imageScre != null) {
+          // Request permission to access the photo gallery
+          final permission = await PhotoManager.requestPermissionExtend();
+          if (permission.isAuth) {
+            // Get the photo album
+            final album =
+                await PhotoManager.editor.saveImage(imageScre, filename: 'Qr');
+            print(album);
+            if (album != null) {
+              print('Screenshot saved to gallery');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('QR Code downloaded successfully')),
+              );
+            }
+          } else {
+            print('Permission denied to access photo gallery');
+          }
+        }
+      }).catchError((e) {
+        print('Error capturing screenshot: $e');
+      });
+    } catch (e) {
+      print('Error: $e');
+    }
+
+    // try {
+    //   print("----");
+    //   final image = await screenshotController.capture();
+    //   if (image != null) {
+    //     print("Screenshot captured successfully");
+    //     showDialog(
+    //       context: context,
+    //       builder: (context) => Dialog(
+    //         child: Image.memory(image),
+    //       ),
+    //     );
+    //   } else {
+    //     print("Failed to capture screenshot");
+    //   }
+    // } catch (e) {
+    //   print('Error: $e');
+    // }
   }
 }
