@@ -1,5 +1,7 @@
+import 'package:date_palm_challenge/screens/contribution_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constent/app_colors.dart';
 import '../constent/app_responsive_size.dart';
 import '../constent/app_size.dart';
@@ -32,8 +34,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {
         isLoad = false;
       });
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => LoginScreen()));
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('phoneNumber', phoneNumber);
+      await prefs.setString('passwordHash', password);
+      await prefs.setString('username', username);
+      // Navigator.pushReplacement(
+      //     context,
+      //     MaterialPageRoute(
+      //         builder: (context) =>
+      //             // LoginScreen()
+      //             ContributionScreen()));
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => ContributionScreen()),
+        (Route<dynamic> route) => false,
+      );
     } else {
       setState(() {
         isLoad = false;
@@ -48,6 +62,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     final AppResponsiveSizes responsiveSizes = AppResponsiveSizes(context);
     return Scaffold(
+      appBar: AppBar(),
       body: Container(
         width: double.infinity,
         height: MediaQuery.of(context).size.height,

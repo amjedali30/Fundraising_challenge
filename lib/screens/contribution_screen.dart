@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:date_palm_challenge/screens/signUpScreen.dart';
 import 'package:date_palm_challenge/servise/notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -164,8 +165,12 @@ class _ContributionScreenState extends State<ContributionScreen> {
                               mobileNo: phoneNumber!,
                             )));
               } else {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => LoginScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            // LoginScreen()
+                            SignUpScreen()));
               }
             },
             child: username != null
@@ -175,7 +180,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
                     backgroundImage: AssetImage("assets/face1.png"),
                   )
                 : Text(
-                    "Login",
+                    "Sign Up",
                     style: TextStyle(fontSize: AppSizes.fontMedium),
                   ),
           ),
@@ -817,11 +822,15 @@ class _ContributionScreenState extends State<ContributionScreen> {
           content: Text(content),
           actions: <Widget>[
             TextButton(
-              child: Text('Login'),
+              child: Text('Sign Up'),
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => LoginScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            //  LoginScreen()
+                            SignUpScreen()));
               },
             ),
             TextButton(
